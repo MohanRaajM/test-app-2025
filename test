@@ -1,0 +1,194 @@
+import React from "react";
+import { Calendar, Clock } from "lucide-react";
+import Slider from "react-slick";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import "./HalfSeasonPlans.scss";
+
+export type Game = {
+  team: string;
+  weekday: string;
+  date: string;
+  time: string;
+};
+
+// ---- Data arrays (unchanged) ----
+const blueLeft: Game[] = [
+  { team: "Minnesota Timberwolves", weekday: "THU", date: "OCT 9", time: "7:30PM ET" },
+  { team: "Charlotte Hornets", weekday: "FRI", date: "OCT 17", time: "7:30PM ET" },
+  { team: "Cleveland Cavaliers", weekday: "WED", date: "OCT 22", time: "7:00PM ET" },
+  { team: "Chicago Bulls", weekday: "SUN", date: "NOV 2", time: "7:00PM ET" },
+  { team: "Brooklyn Nets", weekday: "SUN", date: "NOV 9", time: "6:00PM ET" },
+  { team: "Orlando Magic", weekday: "WED", date: "NOV 12", time: "7:00PM ET" },
+  { team: "Milwaukee Bucks", weekday: "FRI", date: "NOV 28", time: "7:30PM ET" },
+  { team: "Charlotte Hornets", weekday: "WED", date: "DEC 3", time: "7:30PM ET" },
+  { team: "Utah Jazz", weekday: "FRI", date: "DEC 5", time: "7:30PM ET" },
+  { team: "Philadelphia 76ers", weekday: "FRI", date: "DEC 19", time: "7:00PM ET" },
+  { team: "Miami Heat", weekday: "SUN", date: "DEC 28", time: "6:00PM ET" },
+];
+const blueRight: Game[] = [
+  { team: "Atlanta Hawks", weekday: "FRI", date: "JAN 2", time: "7:30PM ET" },
+  { team: "Phoenix Suns", weekday: "SAT", date: "JAN 17", time: "7:30PM ET" },
+  { team: "Dallas Mavericks", weekday: "MON", date: "JAN 19", time: "5:00PM ET" },
+  { team: "Sacramento Kings", weekday: "TUE", date: "JAN 27", time: "7:30PM ET" },
+  { team: "Denver Nuggets", weekday: "WED", date: "FEB 4", time: "7:00PM ET" },
+  { team: "Indiana Pacers", weekday: "TUE", date: "FEB 10", time: "7:30PM ET" },
+  { team: "San Antonio Spurs", weekday: "SUN", date: "MAR 1", time: "1:00PM ET" },
+  { team: "Golden State Warriors", weekday: "SUN", date: "MAR 15", time: "8:00PM ET" },
+  { team: "Washington Wizards", weekday: "SUN", date: "MAR 22", time: "7:30PM ET" },
+  { team: "Boston Celtics", weekday: "THU", date: "APR 9", time: "7:30PM ET" },
+  { team: "Toronto Raptors", weekday: "FRI", date: "APR 10", time: "7:30PM ET" },
+];
+const orangeLeft: Game[] = [
+  { team: "Washington Wizards", weekday: "MON", date: "OCT 13", time: "7:30PM ET" },
+  { team: "Boston Celtics", weekday: "FRI", date: "OCT 24", time: "7:30PM ET" },
+  { team: "Washington Wizards", weekday: "MON", date: "NOV 3", time: "7:30PM ET" },
+  { team: "Minnesota Timberwolves", weekday: "WED", date: "NOV 5", time: "7:30PM ET" },
+  { team: "Memphis Grizzlies", weekday: "TUE", date: "NOV 11", time: "7:30PM ET" },
+  { team: "Miami Heat", weekday: "FRI", date: "NOV 14", time: "7:00PM ET" },
+  { team: "Toronto Raptors", weekday: "SUN", date: "NOV 30", time: "6:00PM ET" },
+  { team: "Orlando Magic (NBA Cup)", weekday: "SUN", date: "DEC 7", time: "2:00PM ET" },
+  { team: "NBA Cup Quarterfinals", weekday: "TBD", date: "TBD", time: "" },
+  { team: "Cleveland Cavaliers", weekday: "THU", date: "DEC 25", time: "12:00PM ET" },
+  { team: "Philadelphia 76ers", weekday: "SAT", date: "JAN 3", time: "7:30PM ET" },
+];
+const orangeRight: Game[] = [
+  { team: "Los Angeles Clippers", weekday: "WED", date: "JAN 7", time: "7:30PM ET" },
+  { team: "Brooklyn Nets", weekday: "WED", date: "JAN 21", time: "7:30PM ET" },
+  { team: "Portland Trailblazers", weekday: "FRI", date: "JAN 30", time: "7:30PM ET" },
+  { team: "Los Angeles Lakers", weekday: "SUN", date: "FEB 1", time: "7:00PM ET" },
+  { team: "Detroit Pistons", weekday: "THU", date: "FEB 19", time: "7:30PM ET" },
+  { team: "Houston Rockets", weekday: "SAT", date: "FEB 21", time: "8:30PM ET" },
+  { team: "Oklahoma City Thunder", weekday: "WED", date: "MAR 4", time: "7:00PM ET" },
+  { team: "Indiana Pacers", weekday: "TUE", date: "MAR 10", time: "7:30PM ET" },
+  { team: "New Orleans Pelicans", weekday: "TUE", date: "MAR 24", time: "7:30PM ET" },
+  { team: "Chicago Bulls", weekday: "FRI", date: "APR 3", time: "7:30PM ET" },
+  { team: "Charlotte Hornets", weekday: "SUN", date: "APR 12", time: "6:00PM ET" },
+];
+
+const Logo: React.FC<{ label: string }> = ({ label }) => (
+  <div className="hsp-logo" aria-hidden>
+    {label
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")}
+  </div>
+);
+
+const GameRow: React.FC<{ game: Game }> = ({ game }) => (
+  <div className="hsp-row">
+    <Logo label={game.team} />
+    <div className="hsp-row-meta">
+      <p className="hsp-team" title={game.team}>{game.team}</p>
+      <div className="hsp-sub">
+        <span className="hsp-sub-item"><Calendar className="icon"/>{game.weekday} {game.date}</span>
+        {game.time && <span className="hsp-sub-item"><Clock className="icon"/>{game.time}</span>}
+      </div>
+    </div>
+  </div>
+);
+
+const BlockHeader: React.FC<{ title: string; accent: "blue" | "orange" }> = ({ title, accent }) => (
+  <div className="hsp-block-header">
+    <h2 className="hsp-block-title">{title}</h2>
+    <span className={`hsp-badge ${accent}`}>HALF SEASON {accent.toUpperCase()}</span>
+  </div>
+);
+
+const PlanGrid: React.FC<{ leftTitle: string; accent: "blue" | "orange"; left: Game[]; right: Game[]; }> = ({ leftTitle, accent, left, right }) => (
+  <section className="hsp-card">
+    <div className="hsp-card-content">
+      <BlockHeader title={leftTitle} accent={accent} />
+      <hr className="hsp-sep" />
+      <div className="hsp-grid">
+        <div>
+          {left.map((g, i) => (
+            <div key={i}>
+              <GameRow game={g} />
+              {i !== left.length - 1 && <hr className="hsp-item-sep" />}
+            </div>
+          ))}
+        </div>
+        <div>
+          {right.map((g, i) => (
+            <div key={i}>
+              <GameRow game={g} />
+              {i !== right.length - 1 && <hr className="hsp-item-sep" />}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+export default function HalfSeasonPlansDesktop() {
+  const sliderSettings = {
+    dots: true,
+    infinite: false,
+    speed: 500,
+    slidesToShow: 1,
+    slidesToScroll: 1,
+    arrows: false,
+  };
+
+  return (
+    <div className="hsp-root">
+      <div className="hsp-wrap">
+        <header className="hsp-header">
+          <h1 className="hsp-title">Half Season Plans</h1>
+          <p className="hsp-desc">Defend home court every single night and receive amazing membership experiences.</p>
+        </header>
+        {/* Desktop view */}
+        <div className="hsp-stack desktop-only">
+          <PlanGrid leftTitle="Half Season Blue" accent="blue" left={blueLeft} right={blueRight} />
+          <PlanGrid leftTitle="Half Season Orange" accent="orange" left={orangeLeft} right={orangeRight} />
+        </div>
+        {/* Mobile view <=768px */}
+        <div className="hsp-slider mobile-only" data-view="mobile">
+          <Slider {...sliderSettings}>
+            <div>
+              <PlanGrid leftTitle="Half Season Blue" accent="blue" left={blueLeft} right={blueRight} />
+            </div>
+            <div>
+              <PlanGrid leftTitle="Half Season Orange" accent="orange" left={orangeLeft} right={orangeRight} />
+            </div>
+          </Slider>
+        </div>
+{/* Extra small view <=375px */}
+        <div className="hsp-slider xs-only">
+          <Slider {...sliderSettings}>
+            <PlanGrid leftTitle="Half Season Blue" accent="blue" left={blueLeft} right={blueRight} />
+            <PlanGrid leftTitle="Half Season Orange" accent="orange" left={orangeLeft} right={orangeRight} />
+          </Slider>
+        </div>
+      </div>
+    </div>
+  );
+}
+/* visibility helpers */
+.desktop-only { display: block; }
+.mobile-only { display: none; }
+@media (max-width: 768px) {
+  .desktop-only { display: none; }
+  .mobile-only { display: block; }
+}
+
+/* slick theming for dark card */
+.hsp-slider .slick-dots li button:before { color: rgba(255,255,255,.55); opacity: 1; }
+.hsp-slider .slick-dots li.slick-active button:before { color: #fff; opacity: 1; }
+.hsp-slider .slick-dots { bottom: -22px; }
+.hsp-slider .slick-slide > div { padding: 0 2px; }
+
+/* Tighten layout on small phones (<=375px) */
+@media (max-width: 375px) {
+  .hsp-wrap { padding: 28px 14px 48px; }
+  .hsp-card-content { padding: 18px; }
+  .hsp-block-title { font-size: 20px; }
+  .hsp-title { font-size: 34px; }
+  .hsp-row { gap: 10px; padding: 10px 0; }
+  .hsp-logo { height: 36px; width: 36px; font-size: 11px; }
+  .hsp-sub { gap: 10px; font-size: 11px; }
+  .hsp-grid { gap: 10px 22px; }
+}
