@@ -1,0 +1,66 @@
+service: formstack-api
+frameworkVersion: '3'
+
+
+provider:
+name: aws
+runtime: nodejs18.x
+region: us-east-1
+environment:
+# Option A: store the plain value here (for dev only). Prefer SSM for prod.
+FORMSTACK_ID: ${env:FORMSTACK_ID, ''}
+# JWT shared secret for HS256 (if using JWT validation path)
+AUTH_JWT_SECRET: ${env:AUTH_JWT_SECRET, ''}
+# Static token fallback (non-JWT path)
+AUTH_TOKEN: ${env:AUTH_TOKEN, ''}
+# SSM parameter name to fetch formstack id from (e.g., /prod/formstack/id)
+FORMSTACK_ID_SSM_PARAM: ${env:FORMSTACK_ID_SSM_PARAM, ''}
+# Cache TTL in seconds for the in-memory cache
+FORMSTACK_CACHE_TTL_SECONDS: ${env:FORMSTACK_CACHE_TTL_SECONDS, 600}
+
+
+iam:
+role:
+statements:
+- Effect: Allow
+Action:
+- ssm:GetParameter
+Resource:
+- arn:aws:ssm:*:*:parameter/*
+
+
+functions:
+# Lambda TOKEN authorizer
+tokenAuthorizer:
+handler: src/authorizer.authorize
+
+
+# Main API lambda (both GET & POST)
+api:
+handler: src/handler.router
+events:
+- http:
+path: forms
+method: get
+authorizer:
+name: tokenAuthorizer
+type: TOKEN
+identitySource: method.request.header.Authorization
+- http:
+path: forms
+method: post
+authorizer:
+name: tokenAuthorizer
+type: TOKEN
+identitySource: method.request.header.Authorization
+
+
+plugins: []
+
+
+package:
+patterns:
+- '!node_modules/**'
+- '!**/*.md'
+- src/**
+- package.json
