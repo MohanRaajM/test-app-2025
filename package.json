@@ -1,0 +1,9 @@
+{
+"name": "formstack-api",
+"version": "1.0.0",
+"type": "module",
+"dependencies": {
+"@aws-sdk/client-ssm": "^3.637.0",
+"jsonwebtoken": "^9.0.2"
+}
+}
