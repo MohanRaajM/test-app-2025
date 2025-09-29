@@ -1,0 +1,94 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: REST API with GET/POST /items/{id}, caching by path id (and header for POST)
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 10
+    MemorySize: 256
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: items-api
+      StageName: prod
+      # 1) Enable stage cache
+      CacheClusterEnabled: true
+      CacheClusterSize: '0.5'
+      # Optional: bump this to force a stage update if the console seems stale
+      Variables:
+        CacheBust: 'v1'
+      # 2) Explicitly declare the {id} path parameter (this is what makes the console show "Active")
+      DefinitionBody:
+        openapi: "3.0.1"
+        info:
+          title: items-api
+          version: "1.0.0"
+        paths:
+          /items/{id}:
+            parameters:
+              - name: id
+                in: path
+                required: true
+                schema: { type: string }
+            get:
+              responses:
+                '200': { description: OK }
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                payloadFormatVersion: "1.0"
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFn.Arn}/invocations
+            post:
+              responses:
+                '200': { description: OK }
+              x-amazon-apigateway-integration:
+                type: aws_proxy
+                httpMethod: POST
+                payloadFormatVersion: "1.0"
+                uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ItemsFn.Arn}/invocations
+      # 3) Per-method cache settings & keys
+      MethodSettings:
+        - HttpMethod: GET
+          ResourcePath: /items/{id}
+          CachingEnabled: true
+          CacheDataEncrypted: true
+          CacheTtlInSeconds: 300
+          CacheKeyParameters:
+            - method.request.path.id
+        - HttpMethod: POST
+          ResourcePath: /items/{id}
+          CachingEnabled: true
+          CacheDataEncrypted: true
+          CacheTtlInSeconds: 300
+          # POST can't key on body. Include a client header or query param in the key:
+          CacheKeyParameters:
+            - method.request.path.id
+            - method.request.header.X-Cache-Key
+      Cors:
+        AllowMethods: "'GET,POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization,X-Cache-Key'"
+        AllowOrigin: "'*'"
+
+  ItemsFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      # No implicit Api events here; the OpenAPI above wires the routes.
+
+  # Allow API Gateway to invoke the Lambda because we used OpenAPI wiring
+  PermissionForApiToInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ItemsFn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${Api}/*/*/items/*
+
+Outputs:
+  GetUrl:
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod/items/{id}"
+    Description: Replace {id}
