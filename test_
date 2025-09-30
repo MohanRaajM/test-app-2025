@@ -1,0 +1,126 @@
+package.json
+{
+  "name": "lambda-ts",
+  "private": true,
+  "devDependencies": {
+    "esbuild": "^0.23.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^20.11.30",
+    "@types/aws-lambda": "^8.10.129"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  }
+}
+
+tsconfig.json
+
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "types": ["node", "aws-lambda"]
+  },
+  "include": ["lambda/**/*.ts", "services/**/*.ts"]
+}
+
+lambda/getform.ts
+import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
+import { getForm } from "../services/api";
+
+export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGatewayProxyResultV2> => {
+  const id = event.pathParameters?.id;
+  if (!id) return json(400, { error: "Missing path param: id" });
+
+  try {
+    const form = await getForm(id);
+    return json(200, form);
+  } catch (err: any) {
+    return json(500, { error: err?.message || "Internal error" });
+  }
+};
+
+function json(statusCode: number, body: unknown): APIGatewayProxyResultV2 {
+  return {
+    statusCode,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  };
+}
+
+services/api.ts
+const BASE_URL = process.env.FORMSTACK_BASE_URL ?? "https://www.formstack.com/api/v2025";
+const TOKEN = process.env.FORMSTACK_TOKEN;
+
+export interface FormstackForm {
+  id: number | string;
+  name?: string;
+  [k: string]: unknown;
+}
+
+export async function getForm(id: string): Promise<FormstackForm> {
+  if (!TOKEN) throw new Error("FORMSTACK_TOKEN not set");
+
+  const res = await fetch(`${BASE_URL}/forms/${encodeURIComponent(id)}`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${TOKEN}`
+    }
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Formstack ${res.status} ${res.statusText} ${text}`);
+  }
+
+  return res.json() as Promise<FormstackForm>;
+}
+
+template.yml
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda (TypeScript) + API Gateway
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+
+  GetFormFn:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: nodejs20.x
+      CodeUri: .
+      Handler: lambda/getform.handler            # points at getform.ts (built to JS)
+      Events:
+        GetForm:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /forms/{id}
+            Method: get
+      Environment:
+        Variables:
+          FORMSTACK_TOKEN: fs_pat_your_token_here
+          FORMSTACK_BASE_URL: https://www.formstack.com/api/v2025
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - lambda/getform.ts
+        Minify: true
+        Target: es2022
+        Sourcemap: true
