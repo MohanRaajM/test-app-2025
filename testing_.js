@@ -1,88 +1,112 @@
-// app.js — Node.js 20.x on AWS Lambda
-// Env vars required: FORMSTACK_TOKEN=fs_pat_xxx  (and optionally FORMSTACK_BASE_URL)
-const BASE_URL = process.env.FORMSTACK_BASE_URL ?? 'https://www.formstack.com/api/v2025';
-const TOKEN = process.env.FORMSTACK_TOKEN; // Personal Access Token: fs_pat_...
+import React from "react";
+import "./ResponsiveRoster.css";
 
-const DEFAULT_TIMEOUT_MS = 10000;
-const MAX_RETRIES = 3;
-
-exports.handler = async (event) => {
-  if (!TOKEN) return resp(500, { error: 'FORMSTACK_TOKEN env var not set' });
-
-  try {
-    const method = event.httpMethod || 'GET';
-
-    if (method === 'GET') {
-      // Example: List forms
-      const data = await fsFetch('/forms');
-      return resp(200, data);
-    }
-
-    if (method === 'POST') {
-      // Example: Create a submission
-      // Body supports either:
-      // { formId: 123, fields: { "11111": "Alice", "22222": "alice@example.com" } }
-      // OR
-      // { formId: 123, fields: [ { field: "11111", value: "Alice" }, { field: "22222", value: "alice@example.com" } ] }
-      const body = event.body ? JSON.parse(event.body) : {};
-      const { formId, fields } = body || {};
-      if (!formId) return resp(400, { error: 'Missing formId' });
-
-      const payload = Array.isArray(fields)
-        ? { fields }
-        : {
-            fields: Object.entries(fields ?? {}).map(([field, value]) => ({
-              field: String(field),
-              value
-            }))
-          };
-
-      const data = await fsFetch(`/forms/${formId}/submissions`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      return resp(201, data);
-    }
-
-    return resp(405, { error: 'Method Not Allowed' });
-  } catch (err) {
-    return resp(500, { error: err.message });
-  }
+const splitName = (fullName = "") => {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 1) return { first: parts[0], last: "" };
+  return {
+    first: parts[0],
+    last: parts.slice(1).join(" "),
+  };
 };
 
-async function fsFetch(path, options = {}, attempt = 1) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      method: 'GET',
-      ...options,
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${TOKEN}`,
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...options.headers
-      },
-      signal: controller.signal
-    });
+const positionLabel = (pos) => {
+  const map = { G: "GUARD", F: "FORWARD", C: "CENTER" };
+  return map[pos] || pos;
+};
 
-    if ((res.status === 429 || res.status >= 500) && attempt < MAX_RETRIES) {
-      const retryAfter = Number(res.headers.get('retry-after'));
-      const delayMs = !Number.isNaN(retryAfter) ? retryAfter * 1000 : Math.min(2 ** attempt * 300, 4000);
-      await new Promise((r) => setTimeout(r, delayMs));
-      return fsFetch(path, options, attempt + 1);
-    }
+const ResponsiveRoster = ({ players, coaches }) => {
+  return (
+    <div className="roster-page">
+      {/* LEFT: ROSTER */}
+      <section className="roster-left">
+        <header className="roster-header">
+          <div className="roster-logo-circle">M</div>
+          <h1 className="roster-title">ROSTER</h1>
+        </header>
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`${res.status} ${res.statusText}: ${text}`);
-    }
-    return res.json();
-  } finally {
-    clearTimeout(t);
-  }
-}
+        <div className="players-grid">
+          {players.map((p) => {
+            const { first, last } = splitName(p.playerName);
 
-function resp(statusCode, body) {
-  return { statusCode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
-}
+            return (
+              <article key={p.playerid} className="player-card">
+                <div className="player-top-row">
+                  <div className="player-number-block">
+                    <span className="player-number">{p.jerseyNum}</span>
+                    <span className="player-position">
+                      {positionLabel(p.position)}
+                    </span>
+                  </div>
+
+                  <div className="player-name">
+                    <span className="player-name-first">
+                      {first.toUpperCase()}
+                    </span>
+                    {last && (
+                      <span className="player-name-last">
+                        {last.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="player-photo">
+                  {p.imageUrl && (
+                    <img src={p.imageUrl} alt={p.playerName} loading="lazy" />
+                  )}
+                </div>
+
+                <div className="player-meta-bottom">
+                  <div className="player-physicals">
+                    <span>{p.height}</span>
+                    {p.weight && <span> • {p.weight} lbs</span>}
+                  </div>
+                  <div className="player-underline" />
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* RIGHT: COACHES */}
+      <aside className="roster-right">
+        <h1 className="coaches-title">COACHES</h1>
+
+        <div className="coaches-list">
+          {coaches.map((c) => {
+            const { first, last } = splitName(c.name);
+            return (
+              <article key={c.name} className="coach-card">
+                <header className="coach-header">
+                  <div className="coach-name">
+                    <span className="coach-first">
+                      {first.toUpperCase()}
+                    </span>
+                    {last && (
+                      <span className="coach-last">
+                        {last.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="coach-title">{c.role.toUpperCase()}</div>
+                </header>
+
+                <div className="coach-photo">
+                  {c.imageUrl && (
+                    <img src={c.imageUrl} alt={c.name} loading="lazy" />
+                  )}
+                </div>
+
+                <div className="coach-underline" />
+              </article>
+            );
+          })}
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+export default ResponsiveRoster;
