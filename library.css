@@ -1,0 +1,172 @@
+:root {
+  --primary-blue: #004c9b;
+  --accent-red: #db1f26;
+  --text-dark: #1f1f1f;
+  --text-muted: #777777;
+  --border-light: #e5e5e5;
+  --bg-page: #ffffff;
+  --font-main: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background: var(--bg-page);
+}
+
+/* Layout container */
+
+.roster-page {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 24px 40px;
+  box-sizing: border-box;
+
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+  column-gap: 40px;
+}
+
+/* Left side header */
+
+.roster-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.roster-logo-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.roster-title {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-blue);
+}
+
+/* Players grid */
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 24px;
+}
+
+.player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.player-photo {
+  width: 100%;
+  padding-top: 90%; /* placeholder aspect ratio for headshot */
+  border-radius: 12px;
+  background: #f2f2f2;
+  border: 1px solid var(--border-light);
+  margin-bottom: 12px;
+}
+
+/* Text below headshot */
+
+.player-meta {
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 10px;
+}
+
+.player-number-position {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.player-number {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--primary-blue);
+}
+
+.player-position {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.player-name {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dark);
+}
+
+/* Coaches column */
+
+.roster-right {
+  align-self: flex-start;
+}
+
+.coaches-title {
+  margin: 0 0 20px;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary-blue);
+}
+
+.coaches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coach-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.coach-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coach-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dark);
+}
+
+.coach-role {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-muted);
+}
+
+.coach-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #f2f2f2;
+  border: 1px solid var(--border-light);
+}
